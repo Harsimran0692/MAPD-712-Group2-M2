@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, FlatList, Image } from 'react-native';
 
 const PatientHistory = ({ route }) => {
-  const { history, name, image, dob } = route.params; // Destructure the patient data from params
+  const { history, name, image, dob } = route.params; // Destructuring the patient data from params
 
   // Calculate age based on the date of birth
   const calculateAge = (dob) => {

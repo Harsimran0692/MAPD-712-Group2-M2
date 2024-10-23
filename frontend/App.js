@@ -1,4 +1,8 @@
-// App.js
+/*
+Course: MAPD-712
+Group: 2
+Participants: Harsimran Singh (301500536), Hassanzadeh Moghaddam, Maziar (301064337)
+*/
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -17,7 +21,6 @@ export default function App() {
         <Stack.Screen name="PatientsList" component={PatientsList} />
         <Stack.Screen name="PatientDetail" component={PatientDetail} />
         <Stack.Screen name="PatientHistory" component={PatientHistory} />
-
       </Stack.Navigator>
     </NavigationContainer>
   );

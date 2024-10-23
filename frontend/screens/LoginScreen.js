@@ -1,3 +1,9 @@
+/*
+Course: MAPD-712
+Group: 2
+Participants: Harsimran Singh (301500536), Hassanzadeh Moghaddam, Maziar (301064337)
+*/
+
 import React, { useState } from "react";
 import { StyleSheet, View, Text, TextInput, Button, TouchableOpacity } from "react-native";
 import { useNavigation } from '@react-navigation/native';
@@ -19,14 +25,14 @@ const LoginScreen = () => {
         style={styles.input}
         placeholder="Name"
         value={name}
-        onChangeText={setName} // Update name state
+        onChangeText={setName} // Updating name state
       />
       <TextInput
         style={styles.input}
         placeholder="Password"
         secureTextEntry
         value={password}
-        onChangeText={setPassword} // Update password state
+        onChangeText={setPassword} // Updating password state
       />
       <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
         <Text style={styles.loginButtonText}>Login</Text>
