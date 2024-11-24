@@ -10,22 +10,47 @@ const EditPatient = ({ route, navigation }) => {
     healthStatus: patient.healthStatus,
     lastVisit: patient.lastVisit,
     visitDateTime: patient.visitDateTime,
-    bloodPressure: patient.bloodPressure,
+    bloodPressure: String(patient.bloodPressure),
     respiratoryRate: String(patient.respiratoryRate),
-    oxygenLevel: patient.oxygenLevel,
-    heartbeatRate: patient.heartbeatRate,
+    oxygenLevel: String(patient.oxygenLevel),
+    heartbeatRate: String(patient.heartbeatRate),
     image: patient.image,
   });
   const [loading, setLoading] = useState(false);
 
+  // Function to determine health status based on vitals
+  const updateHealthStatus = () => {
+    const { bloodPressure, respiratoryRate, oxygenLevel, heartbeatRate } = formData;
+    
+    // Simple health status logic based on vitals data
+    let status = 'Stable';
+
+    // Critical conditions (just examples, modify as needed)
+    if (parseInt(bloodPressure) > 180 || parseInt(heartbeatRate) > 120 || parseInt(oxygenLevel) < 90) {
+      status = 'Critical';
+    }
+    // Under observation conditions
+    else if (parseInt(bloodPressure) > 140 || parseInt(oxygenLevel) < 95) {
+      status = 'Under Observation';
+    }
+
+    setFormData((prevData) => ({
+      ...prevData,
+      healthStatus: status,
+    }));
+  };
+
   // Function to handle form input change
   const handleInputChange = (name, value) => {
     setFormData({ ...formData, [name]: value });
+    if (name === 'bloodPressure' || name === 'respiratoryRate' || name === 'oxygenLevel' || name === 'heartbeatRate') {
+      // Update health status when any of the vital signs change
+      updateHealthStatus();
+    }
   };
 
   // Function to submit the updated data
   const handleSubmit = async () => {
-    
     setLoading(true);
     try {
       const response = await fetch(`http://localhost:3000/api/patient/${patient._id}`, {
@@ -76,12 +101,12 @@ const EditPatient = ({ route, navigation }) => {
           onChangeText={(text) => handleInputChange('dob', text)}
         />
 
-        {/* Health Status */}
+        {/* Health Status (disabled, auto-updating) */}
         <TextInput
           style={styles.input}
           placeholder="Health Status"
           value={formData.healthStatus}
-          onChangeText={(text) => handleInputChange('healthStatus', text)}
+          editable={false} // Make it read-only so the user cannot change it
         />
 
         {/* Last Visit */}
