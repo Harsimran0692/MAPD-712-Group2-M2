@@ -1,42 +1,104 @@
-import React, { useState } from "react";
-import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, Alert } from "react-native";
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useEffect } from "react";
+import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, Alert, Platform } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 
 export default function AddPatient() {
   const navigation = useNavigation();
-  const apiUrl = "http://localhost:3000/api/patient"; // URL of the API
+  const apiUrl = "http://localhost:3000/api/patient";
 
-  // State for patient fields
   const [patient, setPatient] = useState({
-    name: 'Jim Carry',
-    dob: '1985-06-15', // Format: YYYY-MM-DD
-    healthStatus: 'Stable',
-    lastVisit: '2023-10-01', // Format: YYYY-MM-DD
-    visitDateTime: '2023-10-15T10:30:00', // Format: YYYY-MM-DDTHH:MM:SS
-    bloodPressure: '120/80 mmHg',
-    respiratoryRate: "18", // breaths per minute
-    oxygenLevel: '98%',
-    heartbeatRate: '72 bpm',
+    name: "",
+    dob: new Date(),
+    lastVisit: new Date(),
+    visitDateTime: new Date(),
+    bloodPressure: "",
+    respiratoryRate: "",
+    oxygenLevel: "",
+    heartbeatRate: "",
+    healthStatus: "Stable", // Initial health status
   });
+
+  const [picker, setPicker] = useState({
+    visible: false,
+    mode: "date", // Can be "date" or "datetime"
+    field: null,
+  });
+
+  // Automatically update the health status when relevant fields change
+  useEffect(() => {
+    updateHealthStatus();
+  }, [
+    patient.bloodPressure,
+    patient.respiratoryRate,
+    patient.oxygenLevel,
+    patient.heartbeatRate,
+  ]);
+
+  const updateHealthStatus = () => {
+    const {
+      bloodPressure,
+      respiratoryRate,
+      oxygenLevel,
+      heartbeatRate,
+    } = patient;
+
+    // Handle empty inputs to avoid NaN
+    const bp = parseInt(bloodPressure) || 0;
+    const hr = parseInt(heartbeatRate) || 0;
+    const oxygen = parseInt(oxygenLevel) || 0;
+
+    let status = "Stable";
+
+    // Critical conditions (modify as needed)
+    if (bp > 180 || hr > 120 || oxygen < 90) {
+      status = "Critical";
+    }
+    // Under observation conditions
+    else if (bp > 140 || oxygen < 95) {
+      status = "Under Observation";
+    }
+
+    setPatient((prevData) => ({
+      ...prevData,
+      healthStatus: status,
+    }));
+  };
+
+  const handlePickerConfirm = (date) => {
+    setPicker({ visible: false, mode: "date", field: null });
+    if (picker.field) {
+      setPatient((prev) => ({ ...prev, [picker.field]: date }));
+    }
+  };
+
+  const handlePickerCancel = () => {
+    setPicker({ visible: false, mode: "date", field: null });
+  };
 
   const handleAddPatient = async () => {
     try {
+      const patientData = {
+        ...patient,
+        dob: patient.dob.toISOString().split("T")[0],
+        lastVisit: patient.lastVisit.toISOString().split("T")[0],
+        visitDateTime: patient.visitDateTime.toISOString(),
+      };
+
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(patient),
+        body: JSON.stringify(patientData),
       });
 
       if (!response.ok) {
         throw new Error("Failed to add patient");
       }
 
-      // Display success message
       Alert.alert("Success", "Patient added successfully!");
-      navigation.goBack(); // Navigate back to the previous screen
-
+      navigation.goBack();
     } catch (error) {
       Alert.alert("Error", error.message);
     }
@@ -45,65 +107,98 @@ export default function AddPatient() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Add New Patient</Text>
+
+      {/* Name Field */}
+      <Text style={styles.label}>Name</Text>
       <TextInput
         style={styles.input}
-        placeholder="Name"
+        placeholder="Enter patient name"
         value={patient.name}
         onChangeText={(text) => setPatient({ ...patient, name: text })}
       />
+
+      {/* DOB Picker */}
+      <Text style={styles.label}>Date of Birth</Text>
+      <TouchableOpacity
+        style={styles.input}
+        onPress={() => setPicker({ visible: true, mode: "date", field: "dob" })}
+      >
+        <Text>{patient.dob.toISOString().split("T")[0]}</Text>
+      </TouchableOpacity>
+
+      {/* Last Visit Date Picker */}
+      <Text style={styles.label}>Last Visit Date</Text>
+      <TouchableOpacity
+        style={styles.input}
+        onPress={() => setPicker({ visible: true, mode: "date", field: "lastVisit" })}
+      >
+        <Text>{patient.lastVisit.toISOString().split("T")[0]}</Text>
+      </TouchableOpacity>
+
+      {/* Visit Date & Time Picker */}
+      <Text style={styles.label}>Visit Date & Time</Text>
+      <TouchableOpacity
+        style={styles.input}
+        onPress={() => setPicker({ visible: true, mode: "datetime", field: "visitDateTime" })}
+      >
+        <Text>{patient.visitDateTime.toISOString().replace("T", " ").slice(0, 16)}</Text>
+      </TouchableOpacity>
+
+      {/* Blood Pressure */}
+      <Text style={styles.label}>Blood Pressure</Text>
       <TextInput
         style={styles.input}
-        placeholder="Date of Birth (YYYY-MM-DD)"
-        value={patient.dob}
-        onChangeText={(text) => setPatient({ ...patient, dob: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Health Status"
-        value={patient.healthStatus}
-        onChangeText={(text) => setPatient({ ...patient, healthStatus: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Last Visit Date (YYYY-MM-DD)"
-        value={patient.lastVisit}
-        onChangeText={(text) => setPatient({ ...patient, lastVisit: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Visit DateTime (YYYY-MM-DDTHH:MM:SS)"
-        value={patient.visitDateTime}
-        onChangeText={(text) => setPatient({ ...patient, visitDateTime: text })}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Blood Pressure"
+        placeholder="Enter blood pressure (systolic only)"
+        keyboardType="numeric"
         value={patient.bloodPressure}
         onChangeText={(text) => setPatient({ ...patient, bloodPressure: text })}
       />
+
+      {/* Respiratory Rate */}
+      <Text style={styles.label}>Respiratory Rate</Text>
       <TextInput
         style={styles.input}
-        placeholder="Respiratory Rate"
-        value={patient.respiratoryRate}
+        placeholder="Enter respiratory rate (breaths/min)"
         keyboardType="numeric"
+        value={patient.respiratoryRate}
         onChangeText={(text) => setPatient({ ...patient, respiratoryRate: text })}
       />
+
+      {/* Oxygen Level */}
+      <Text style={styles.label}>Oxygen Level</Text>
       <TextInput
         style={styles.input}
-        placeholder="Oxygen Level"
+        placeholder="Enter oxygen level (%)"
+        keyboardType="numeric"
         value={patient.oxygenLevel}
         onChangeText={(text) => setPatient({ ...patient, oxygenLevel: text })}
       />
+
+      {/* Heartbeat Rate */}
+      <Text style={styles.label}>Heartbeat Rate</Text>
       <TextInput
         style={styles.input}
-        placeholder="Heartbeat Rate"
+        placeholder="Enter heartbeat rate (bpm)"
+        keyboardType="numeric"
         value={patient.heartbeatRate}
         onChangeText={(text) => setPatient({ ...patient, heartbeatRate: text })}
       />
-      
+
+      {/* Health Status Display */}
+      <Text style={styles.label}>Health Status: {patient.healthStatus}</Text>
+
+      {/* Submit Button */}
       <TouchableOpacity style={styles.submitButton} onPress={handleAddPatient}>
         <Text style={styles.submitButtonText}>Submit</Text>
       </TouchableOpacity>
+
+      {/* DateTime Picker Modal */}
+      <DateTimePickerModal
+        isVisible={picker.visible}
+        mode={picker.mode}
+        onConfirm={handlePickerConfirm}
+        onCancel={handlePickerCancel}
+      />
     </ScrollView>
   );
 }
@@ -117,29 +212,32 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
-    color: "#333",
     textAlign: "center",
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 5,
+    fontWeight: "600",
   },
   input: {
     backgroundColor: "#fff",
     padding: 10,
-    borderRadius: 10,
+    borderRadius: 8,
     borderColor: "#ddd",
     borderWidth: 1,
     marginBottom: 15,
-    elevation: 2,
+    justifyContent: "center",
   },
   submitButton: {
     backgroundColor: "#007AFF",
-    paddingVertical: 15,
-    borderRadius: 10,
+    padding: 15,
+    borderRadius: 8,
     alignItems: "center",
     marginTop: 20,
-    elevation: 3,
   },
   submitButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
 });

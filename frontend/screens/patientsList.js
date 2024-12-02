@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 
 export default function PatientsList({ route }) {
   const navigation = useNavigation();
-  const { userName } = route.params;
+  const { userName } = route.params || "";
   const currentUser = {
     name: userName,
     profilePic: "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",

@@ -1,26 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 const EditPatient = ({ route, navigation }) => {
-  const { patient } = route.params; // The patient data passed from PatientDetail
+  const { patient } = route.params;
+
+  console.log("patient.healthStatus", patient.healthStatus);
   
   const [formData, setFormData] = useState({
     name: patient.name,
-    dob: patient.dob,
+    dob: new Date(patient.dob),
     healthStatus: patient.healthStatus,
-    lastVisit: patient.lastVisit,
-    visitDateTime: patient.visitDateTime,
+    lastVisit: new Date(patient.lastVisit),
+    visitDateTime: new Date(patient.visitDateTime),
     bloodPressure: String(patient.bloodPressure),
     respiratoryRate: String(patient.respiratoryRate),
     oxygenLevel: String(patient.oxygenLevel),
     heartbeatRate: String(patient.heartbeatRate),
     image: patient.image,
+    
   });
   const [loading, setLoading] = useState(false);
+  const [picker, setPicker] = useState({
+    visible: false,
+    mode: 'date',
+    field: null,
+  });
 
-  // Function to determine health status based on vitals
   const updateHealthStatus = () => {
     const { bloodPressure, respiratoryRate, oxygenLevel, heartbeatRate } = formData;
+
+    console.log("bloodPressure", bloodPressure);
+    
     
     // Simple health status logic based on vitals data
     let status = 'Stable';
@@ -39,36 +61,47 @@ const EditPatient = ({ route, navigation }) => {
       healthStatus: status,
     }));
   };
-
-  // Function to handle form input change
+  
+  
   const handleInputChange = (name, value) => {
-    setFormData({ ...formData, [name]: value });
-    if (name === 'bloodPressure' || name === 'respiratoryRate' || name === 'oxygenLevel' || name === 'heartbeatRate') {
-      // Update health status when any of the vital signs change
-      updateHealthStatus();
+    setFormData((prevData) => {
+      const updatedData = { ...prevData, [name]: value };
+  
+      // Update health status only when relevant fields are changed
+      if (['bloodPressure', 'respiratoryRate', 'oxygenLevel', 'heartbeatRate'].includes(name)) {
+        updateHealthStatus();
+      }
+  
+      console.log('Form Data Updated:', updatedData);
+      return updatedData;
+    });
+  };
+  
+
+  const handlePickerConfirm = (date) => {
+    setPicker({ visible: false, mode: 'date', field: null });
+    if (picker.field) {
+      setFormData((prevData) => ({ ...prevData, [picker.field]: date }));
     }
   };
 
-  // Function to submit the updated data
+  const handlePickerCancel = () => {
+    setPicker({ visible: false, mode: 'date', field: null });
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     try {
       const response = await fetch(`http://localhost:3000/api/patient/${patient._id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
       if (!response.ok) {
         throw new Error('Failed to update patient details');
       }
-      const data = await response.json();
       Alert.alert('Success', 'Patient details updated successfully!', [
-        {
-          text: 'OK',
-          onPress: () => navigation.goBack(),
-        },
+        { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
       Alert.alert('Error', error.message);
@@ -77,138 +110,134 @@ const EditPatient = ({ route, navigation }) => {
     }
   };
 
+  const handleDelete = async () => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this patient?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await fetch(`http://localhost:3000/api/patient/${patient._id}`, {
+                method: 'DELETE',
+              });
+              if (!response.ok) {
+                throw new Error('Failed to delete patient');
+              }
+              Alert.alert('Success', 'Patient deleted successfully!', [
+                { text: 'OK', onPress: () => navigation.navigate('PatientsList') },
+              ]);
+            } catch (error) {
+              Alert.alert('Error', error.message);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>Edit Patient Details</Text>
 
-        {/* Patient Name */}
+        <Text style={styles.label}>Name</Text>
         <TextInput
           style={styles.input}
-          placeholder="Patient Name"
           value={formData.name}
           onChangeText={(text) => handleInputChange('name', text)}
         />
 
-        {/* Patient Date of Birth */}
+        <Text style={styles.label}>Date of Birth</Text>
+        <TouchableOpacity
+          style={styles.input}
+          onPress={() => setPicker({ visible: true, mode: 'date', field: 'dob' })}
+        >
+          <Text>{formData.dob.toISOString().split('T')[0]}</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.label}>Last Visit</Text>
+        <TouchableOpacity
+          style={styles.input}
+          onPress={() => setPicker({ visible: true, mode: 'date', field: 'lastVisit' })}
+        >
+          <Text>{formData.lastVisit.toISOString().split('T')[0]}</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.label}>Visit Date & Time</Text>
+        <TouchableOpacity
+          style={styles.input}
+          onPress={() => setPicker({ visible: true, mode: 'datetime', field: 'visitDateTime' })}
+        >
+          <Text>{formData.visitDateTime.toISOString().replace('T', ' ').slice(0, 16)}</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.label}>Vitals</Text>
+
+        <Text style={styles.label}>Blood Pressure</Text>
         <TextInput
           style={styles.input}
-          placeholder="Date of Birth (YYYY-MM-DD)"
-          value={formData.dob}
-          onChangeText={(text) => handleInputChange('dob', text)}
-        />
-
-        {/* Health Status (disabled, auto-updating) */}
-        <TextInput
-          style={styles.input}
-          placeholder="Health Status"
-          value={formData.healthStatus}
-          editable={false} // Make it read-only so the user cannot change it
-        />
-
-        {/* Last Visit */}
-        <TextInput
-          style={styles.input}
-          placeholder="Last Visit"
-          value={formData.lastVisit}
-          onChangeText={(text) => handleInputChange('lastVisit', text)}
-        />
-
-        {/* Visit Date and Time */}
-        <TextInput
-          style={styles.input}
-          placeholder="Visit Date and Time"
-          value={formData.visitDateTime}
-          onChangeText={(text) => handleInputChange('visitDateTime', text)}
-        />
-
-        {/* Vitals Section */}
-        <Text style={styles.sectionTitle}>Vitals</Text>
-
-        <TextInput
-          style={styles.input}
-          placeholder="Blood Pressure"
+          keyboardType="numeric"
           value={formData.bloodPressure}
           onChangeText={(text) => handleInputChange('bloodPressure', text)}
         />
 
+        <Text style={styles.label}>Respiratory Rate</Text>
         <TextInput
           style={styles.input}
-          placeholder="Respiratory Rate"
+          keyboardType="numeric"
           value={formData.respiratoryRate}
           onChangeText={(text) => handleInputChange('respiratoryRate', text)}
         />
 
+        <Text style={styles.label}>Oxygen Level</Text>
         <TextInput
           style={styles.input}
-          placeholder="Oxygen Level"
+          keyboardType="numeric"
           value={formData.oxygenLevel}
           onChangeText={(text) => handleInputChange('oxygenLevel', text)}
         />
 
+        <Text style={styles.label}>Heartbeat Rate</Text>
         <TextInput
           style={styles.input}
-          placeholder="Heartbeat Rate"
+          keyboardType="numeric"
           value={formData.heartbeatRate}
           onChangeText={(text) => handleInputChange('heartbeatRate', text)}
         />
 
-        {/* Image URL */}
-        <TextInput
-          style={styles.input}
-          placeholder="Image URL"
-          value={formData.image}
-          onChangeText={(text) => handleInputChange('image', text)}
-        />
-
-        {/* Spacer for better spacing */}
-        <View style={styles.bottomSpacer}></View>
-
-        {/* Submit Button */}
         <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.submitButtonText}>Update Details</Text>
-          )}
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Update Details</Text>}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+          <Text style={styles.deleteText}>Delete Patient</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <DateTimePickerModal
+        isVisible={picker.visible}
+        mode={picker.mode}
+        date={picker.mode === 'datetime' ? formData[picker.field] : new Date()}
+        onConfirm={handlePickerConfirm}
+        onCancel={handlePickerCancel}
+      />
     </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1, // Ensures content can grow with the screen
-    padding: 20,
-    backgroundColor: '#f5f5f5',
-    paddingBottom: 100, // Extra space for the button at the bottom
-  },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, color: '#333' },
-  input: {
-    height: 50,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 10,
-    marginBottom: 15,
-    paddingLeft: 15,
-    backgroundColor: '#fff',
-  },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginVertical: 10, color: '#333' },
-  submitButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  submitButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  bottomSpacer: {
-    height: 20, // Spacer to add space before the button
-  },
+  container: { padding: 20, backgroundColor: '#f5f5f5' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
+  label: { fontSize: 16, fontWeight: '500', marginBottom: 5 },
+  input: { height: 40, borderWidth: 1, borderColor: '#ddd', marginBottom: 15, paddingHorizontal: 10 },
+  submitButton: { backgroundColor: '#007AFF', padding: 10, borderRadius: 5 },
+  submitText: { color: '#fff', textAlign: 'center' },
+  deleteButton: { marginTop: 10, backgroundColor: '#FF3B30', padding: 10, borderRadius: 5 },
+  deleteText: { color: '#fff', textAlign: 'center' },
 });
 
 export default EditPatient;
