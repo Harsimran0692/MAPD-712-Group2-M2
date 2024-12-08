@@ -44,7 +44,7 @@ export default function PatientsList({ route }) {
         return '#FF3B30'; // Red for critical
       case 'Stable':
         return '#4CAF50'; // Green for stable
-      case 'Under Observation':
+      case 'At Risk':
         return '#FFC107'; // Yellow for under observation
       default:
         return '#007AFF'; // Default blue color
@@ -97,7 +97,7 @@ export default function PatientsList({ route }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select Health Status</Text>
-            {['All', 'Stable', 'Critical', 'Under Observation'].map(status => (
+            {['All', 'Stable', 'Critical', 'At Risk'].map(status => (
               <TouchableOpacity
                 key={status}
                 style={[styles.filterOption, selectedHealthStatus === status && styles.selectedOption]}

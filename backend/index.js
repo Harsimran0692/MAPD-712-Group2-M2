@@ -13,11 +13,6 @@ const mongoUrl = process.env.MONGO_URL;
 app.use(cors())
 app.use(bodyParser.json())
 
-// routes
-app.get("/", (req, res) => {
-    res.send("Homeeee");
-})
-
 app.use("/api/patient", router);
 
 

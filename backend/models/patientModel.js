@@ -18,10 +18,6 @@ const patientSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  visitDateTime: {
-    type: Date,
-    required: true
-  },
   bloodPressure: {
     type: String,
     required: true
@@ -57,6 +53,10 @@ const patientSchema = new mongoose.Schema({
         required: true
       },
       heartbeatRate: {
+        type: String,
+        required: true
+      },
+      healthStatus: {
         type: String,
         required: true
       }

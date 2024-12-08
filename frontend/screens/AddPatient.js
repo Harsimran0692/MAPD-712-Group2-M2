@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, Alert, Platform } from "react-native";
+import React, { useState } from "react";
+import { StyleSheet, View, Text, TextInput, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 
@@ -11,58 +11,68 @@ export default function AddPatient() {
     name: "",
     dob: new Date(),
     lastVisit: new Date(),
-    visitDateTime: new Date(),
     bloodPressure: "",
     respiratoryRate: "",
     oxygenLevel: "",
     heartbeatRate: "",
-    healthStatus: "Stable", // Initial health status
   });
 
   const [picker, setPicker] = useState({
     visible: false,
-    mode: "date", // Can be "date" or "datetime"
+    mode: "date",
     field: null,
   });
 
-  // Automatically update the health status when relevant fields change
-  useEffect(() => {
-    updateHealthStatus();
-  }, [
-    patient.bloodPressure,
-    patient.respiratoryRate,
-    patient.oxygenLevel,
-    patient.heartbeatRate,
-  ]);
-
-  const updateHealthStatus = () => {
-    const {
-      bloodPressure,
-      respiratoryRate,
-      oxygenLevel,
-      heartbeatRate,
-    } = patient;
-
-    // Handle empty inputs to avoid NaN
-    const bp = parseInt(bloodPressure) || 0;
-    const hr = parseInt(heartbeatRate) || 0;
-    const oxygen = parseInt(oxygenLevel) || 0;
-
-    let status = "Stable";
-
-    // Critical conditions (modify as needed)
-    if (bp > 180 || hr > 120 || oxygen < 90) {
-      status = "Critical";
-    }
-    // Under observation conditions
-    else if (bp > 140 || oxygen < 95) {
-      status = "Under Observation";
+  const validateBloodPressure = (input) => {
+    const regex = /^\d{2,3}\/\d{2,3}$/; // Format should be e.g., 120/80
+    if (!regex.test(input)) {
+      Alert.alert("Validation Error", "Blood pressure must be in the format '120/80'.");
+      return false;
     }
 
-    setPatient((prevData) => ({
-      ...prevData,
-      healthStatus: status,
-    }));
+    const [systolic, diastolic] = input.split("/").map(Number);
+    if (systolic < 70 || systolic > 200 || diastolic < 40 || diastolic > 120) {
+      Alert.alert("Validation Error", "Blood pressure values must be within reasonable medical ranges.");
+      return false;
+    }
+
+    return true;
+  };
+
+  const validateRespiratoryRate = (input) => {
+    const rate = parseInt(input, 10);
+    if (isNaN(rate) || rate < 5 || rate > 40) { // Typical adult range is 12-20
+      Alert.alert("Validation Error", "Respiratory rate must be between 5 and 40.");
+      return false;
+    }
+    return true;
+  };
+
+  const validateOxygenLevel = (input) => {
+    const level = parseInt(input, 10);
+    if (isNaN(level) || level < 0 || level > 100) {
+      Alert.alert("Validation Error", "Oxygen level must be between 0 and 100.");
+      return false;
+    }
+    return true;
+  };
+
+  const validateHeartbeatRate = (input) => {
+    const rate = parseInt(input, 10);
+    if (isNaN(rate) || rate < 30 || rate > 200) { // Typical adult range is 60-100 bpm
+      Alert.alert("Validation Error", "Heartbeat rate must be between 30 and 200.");
+      return false;
+    }
+    return true;
+  };
+
+  const calculateStatus = (bloodPressure, respiratoryRate, oxygenLevel, heartbeatRate) => {
+    if (bloodPressure > 140 || respiratoryRate < 12 || oxygenLevel < 90 || heartbeatRate > 100) {
+      return "Critical";
+    } else if (bloodPressure > 120 || respiratoryRate > 20 || oxygenLevel < 95 || heartbeatRate > 80) {
+      return "At Risk";
+    }
+    return "Stable";
   };
 
   const handlePickerConfirm = (date) => {
@@ -78,11 +88,29 @@ export default function AddPatient() {
 
   const handleAddPatient = async () => {
     try {
+      // Validate each field before proceeding
+      if (!validateBloodPressure(patient.bloodPressure)) return;
+      if (!validateRespiratoryRate(patient.respiratoryRate)) return;
+      if (!validateOxygenLevel(patient.oxygenLevel)) return;
+      if (!validateHeartbeatRate(patient.heartbeatRate)) return;
+
+      // Split blood pressure input into systolic and diastolic
+      const [systolic, diastolic] = patient.bloodPressure.split("/").map(Number);
+
+      const status = calculateStatus(
+        systolic,
+        parseFloat(patient.respiratoryRate),
+        parseFloat(patient.oxygenLevel),
+        parseFloat(patient.heartbeatRate)
+      );
+
+      console.log("status: " + status);
+
       const patientData = {
         ...patient,
         dob: patient.dob.toISOString().split("T")[0],
-        lastVisit: patient.lastVisit.toISOString().split("T")[0],
-        visitDateTime: patient.visitDateTime.toISOString(),
+        lastVisit: patient.lastVisit.toISOString(),
+        healthStatus: status, // Include calculated status
       };
 
       const response = await fetch(apiUrl, {
@@ -127,28 +155,19 @@ export default function AddPatient() {
       </TouchableOpacity>
 
       {/* Last Visit Date Picker */}
-      <Text style={styles.label}>Last Visit Date</Text>
+      <Text style={styles.label}>Last Visit</Text>
       <TouchableOpacity
         style={styles.input}
-        onPress={() => setPicker({ visible: true, mode: "date", field: "lastVisit" })}
+        onPress={() => setPicker({ visible: true, mode: "datetime", field: "lastVisit" })}
       >
-        <Text>{patient.lastVisit.toISOString().split("T")[0]}</Text>
-      </TouchableOpacity>
-
-      {/* Visit Date & Time Picker */}
-      <Text style={styles.label}>Visit Date & Time</Text>
-      <TouchableOpacity
-        style={styles.input}
-        onPress={() => setPicker({ visible: true, mode: "datetime", field: "visitDateTime" })}
-      >
-        <Text>{patient.visitDateTime.toISOString().replace("T", " ").slice(0, 16)}</Text>
+        <Text>{patient.lastVisit.toISOString().replace("T", " ").slice(0, 16)}</Text>
       </TouchableOpacity>
 
       {/* Blood Pressure */}
-      <Text style={styles.label}>Blood Pressure</Text>
+      <Text style={styles.label}>Blood Pressure (systolic/diastolic)</Text>
       <TextInput
         style={styles.input}
-        placeholder="Enter blood pressure (systolic only)"
+        placeholder="Enter blood pressure (e.g., 120/80)"
         keyboardType="numeric"
         value={patient.bloodPressure}
         onChangeText={(text) => setPatient({ ...patient, bloodPressure: text })}
@@ -183,9 +202,6 @@ export default function AddPatient() {
         value={patient.heartbeatRate}
         onChangeText={(text) => setPatient({ ...patient, heartbeatRate: text })}
       />
-
-      {/* Health Status Display */}
-      <Text style={styles.label}>Health Status: {patient.healthStatus}</Text>
 
       {/* Submit Button */}
       <TouchableOpacity style={styles.submitButton} onPress={handleAddPatient}>

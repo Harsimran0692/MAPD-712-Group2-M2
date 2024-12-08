@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, View, Text, Image, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 
 const PatientDetail = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const isFocused = useIsFocused(); // Hook to check if the screen is focused
+  const isFocused = useIsFocused();
 
   const [patient, setPatient] = useState(route.params.patient);
 
   useEffect(() => {
-    // Check if the screen is focused and update the patient details
     if (isFocused && route.params?.patient) {
       setPatient(route.params.patient);
     }
@@ -21,7 +20,12 @@ const PatientDetail = () => {
       history: patient.history,
       name: patient.name,
       dob: patient.dob,
+      patientId: patient._id,
     });
+  };
+
+  const handleAddHistoryPress = () => {
+    navigation.navigate('AddPatientHistory', { patientId: patient._id });
   };
 
   const handleEditPress = () => {
@@ -30,7 +34,6 @@ const PatientDetail = () => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Patient Info Section */}
       <View style={styles.infoContainer}>
         <Image
           source={{
@@ -46,56 +49,64 @@ const PatientDetail = () => {
         </View>
       </View>
 
-      {/* Edit Button */}
       <TouchableOpacity style={styles.editButton} onPress={handleEditPress}>
         <Text style={styles.editButtonText}>Edit Details</Text>
       </TouchableOpacity>
 
-      {/* Patient Notes */}
       <Text style={styles.note}>Notes about diseases and any remarks about the patient.</Text>
 
-      {/* Clinical Data Section */}
       <View style={styles.clinicalContainer}>
         <Text style={styles.clinicalDataTitle}>Clinical Data</Text>
-
-        {/* Health Info */}
         <View style={styles.clinicalDataContainer}>
           <Text style={styles.clinicalData}>
-            Health Status: <Text style={[styles.healthStatus, patient.healthStatus === 'Critical' ? { color: 'red' } : patient.healthStatus === 'Stable' ? { color: 'green' } : { color: '#ffc008' }]}>{patient.healthStatus}</Text>
+            Health Status:{" "}
+            <Text
+              style={[
+                styles.healthStatus,
+                patient.healthStatus === "Critical"
+                  ? { color: "red" }
+                  : patient.healthStatus === "Stable"
+                  ? { color: "green" }
+                  : { color: "#ffc008" },
+              ]}
+            >
+              {patient.healthStatus}
+            </Text>
           </Text>
-          <Text style={styles.clinicalData}>Last Visit: {patient.lastVisit || 'N/A'}</Text>
-          <Text style={styles.clinicalData}>Date and Time: {patient.visitDateTime || 'N/A'}</Text>
+          <Text style={styles.clinicalData}>Last Visit: {new Date(patient.lastVisit).toLocaleString()}</Text>
         </View>
 
-        {/* Vitals Section */}
         <View style={styles.vitalsContainer}>
-          <Text style={styles.vitalsTitle}>Vitals</Text>
+          <Text style={styles.vitalsTitle}>Latest Vitals</Text>
           <View style={styles.vitalsRow}>
             <View style={styles.vitalCard}>
               <Text style={styles.vitalLabel}>Blood Pressure</Text>
-              <Text style={styles.vitalValue}>{patient.bloodPressure || 'N/A'}</Text>
+              <Text style={styles.vitalValue}>{patient.bloodPressure || "N/A"}</Text>
             </View>
             <View style={styles.vitalCard}>
               <Text style={styles.vitalLabel}>Respiratory Rate</Text>
-              <Text style={styles.vitalValue}>{patient.respiratoryRate || 'N/A'}</Text>
+              <Text style={styles.vitalValue}>{patient.respiratoryRate || "N/A"}</Text>
             </View>
           </View>
           <View style={styles.vitalsRow}>
             <View style={styles.vitalCard}>
               <Text style={styles.vitalLabel}>Oxygen Level</Text>
-              <Text style={styles.vitalValue}>{patient.oxygenLevel || 'N/A'}</Text>
+              <Text style={styles.vitalValue}>{patient.oxygenLevel || "N/A"}</Text>
             </View>
             <View style={styles.vitalCard}>
               <Text style={styles.vitalLabel}>Heartbeat Rate</Text>
-              <Text style={styles.vitalValue}>{patient.heartbeatRate || 'N/A'}</Text>
+              <Text style={styles.vitalValue}>{patient.heartbeatRate || "N/A"}</Text>
             </View>
           </View>
         </View>
       </View>
 
-      {/* History Button */}
       <TouchableOpacity style={styles.historyButton} onPress={handleHistoryPress}>
         <Text style={styles.historyButtonText}>View History</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.addHistoryButton} onPress={handleAddHistoryPress}>
+        <Text style={styles.addHistoryButtonText}>+ Add History</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -169,7 +180,7 @@ const styles = StyleSheet.create({
     color: '#555',
   },
   healthStatus: {
-    color: '#0000FF',
+    fontWeight: 'bold',
   },
   vitalsContainer: {
     marginTop: 15,
@@ -218,6 +229,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  addHistoryButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginTop: 15,
+    alignSelf: 'center',
+    width: '100%',
+    alignItems: 'center',
+  },
+  addHistoryButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
   },
 });
 
